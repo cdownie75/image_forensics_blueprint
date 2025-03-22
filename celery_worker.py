@@ -19,6 +19,16 @@ def preprocess_image_for_ocr(image_path):
     gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
     return gray
 
+import shutil
+import subprocess
+
+print("[DEBUG] Tesseract binary found at:", shutil.which("tesseract"))
+try:
+    version = subprocess.check_output(["tesseract", "--version"])
+    print("[DEBUG] Tesseract version:", version.decode().splitlines()[0])
+except Exception as e:
+    print("[DEBUG] Tesseract version check failed:", e)
+
 @celery.task(name="ocr_task")
 def run_ocr(image_path):
     try:
