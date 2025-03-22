@@ -1,5 +1,6 @@
 from celery import Celery
 import pytesseract
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 import cv2
 import os
 from PIL import Image
