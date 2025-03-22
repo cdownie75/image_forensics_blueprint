@@ -2,7 +2,9 @@ services:
   - type: web
     name: image-forensics-app
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      apt-get update && apt-get install -y tesseract-ocr
+      pip install -r requirements.txt
     startCommand: gunicorn main:app --bind 0.0.0.0:8000
     envVars:
       - key: OPENAI_API_KEY
@@ -15,7 +17,9 @@ services:
   - type: worker
     name: image-forensics-worker
     env: python
-    buildCommand: ""
+    buildCommand: |
+      apt-get update && apt-get install -y tesseract-ocr
+      pip install -r requirements.txt
     startCommand: celery -A celery_worker.celery worker --loglevel=info
     envVars:
       - key: OPENAI_API_KEY
