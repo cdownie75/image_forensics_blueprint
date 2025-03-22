@@ -43,9 +43,14 @@ def histogram_analysis(image):
     return len(anomalies) > 5
 
 def extract_text(image_path):
-    gray_image, _ = preprocess_image(image_path)
-    text = pytesseract.image_to_string(gray_image)
-    return text
+    try:
+        gray_image, _ = preprocess_image(image_path)
+        if gray_image is None:
+            return "[OCR] Error: could not load or preprocess image."
+        text = pytesseract.image_to_string(gray_image)
+        return text
+    except Exception as e:
+        return f"[OCR] Error during text extraction: {str(e)}"
 
 def detect_manipulation(image_path):
     gray, edges = preprocess_image(image_path)
