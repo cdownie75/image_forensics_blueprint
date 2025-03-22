@@ -1,0 +1,9 @@
+Flask
+gunicorn
+pytesseract
+opencv-python
+celery
+redis
+Pillow
+tiktoken
+openai==0.28.1
