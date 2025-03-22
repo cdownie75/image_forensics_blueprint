@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import pytesseract
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
 from PIL import Image, ExifTags
 import os
 import openai
