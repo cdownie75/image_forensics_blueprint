@@ -30,20 +30,7 @@ except Exception as e:
     print("[DEBUG] Tesseract version check failed:", e)
 
 @celery.task(name="ocr_task")
-def run_ocr(image_path):
-    try:
-        print(f"[OCR] Task received for {image_path}")
-        gray_image = preprocess_image_for_ocr(image_path)
-        if isinstance(gray_image, str):
-            print(f"[OCR] Preprocessing failed: {gray_image}")
-            return gray_image
-        print(f"[OCR] Preprocessing complete. Running Tesseract...")
-        text = pytesseract.image_to_string(gray_image)
-        print(f"[OCR] OCR complete. Extracted text length: {len(text.strip())} characters")
-        return text.strip()
-    except Exception as e:
-        print(f"[OCR] Exception during OCR: {str(e)}")
-        return f"Error during OCR: {str(e)}"
+
 def run_ocr(image_path):
     try:
         print(f"[OCR] Starting OCR for {image_path}")
