@@ -3,7 +3,6 @@ services:
     name: image-forensics-app
     env: docker
     dockerfilePath: ./Dockerfile
-    startCommand: gunicorn main:app --bind 0.0.0.0:8000
     envVars:
       - key: OPENAI_API_KEY
         sync: false
@@ -16,7 +15,6 @@ services:
     name: image-forensics-worker
     env: docker
     dockerfilePath: ./Dockerfile
-    startCommand: celery -A celery_worker.celery worker --loglevel=info
     envVars:
       - key: OPENAI_API_KEY
         sync: false
