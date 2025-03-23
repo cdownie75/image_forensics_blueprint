@@ -7,9 +7,9 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: CELERY_BROKER_URL
-        value: redis://localhost:6379/0
+        value: redis://image-forensics-redis:6379/0
       - key: CELERY_RESULT_BACKEND
-        value: redis://localhost:6379/0
+        value: redis://image-forensics-redis:6379/0
 
   - type: worker
     name: image-forensics-worker
@@ -19,9 +19,9 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: CELERY_BROKER_URL
-        value: redis://localhost:6379/0
+        value: redis://image-forensics-redis:6379/0
       - key: CELERY_RESULT_BACKEND
-        value: redis://localhost:6379/0
+        value: redis://image-forensics-redis:6379/0
 
   - type: redis
     name: image-forensics-redis
