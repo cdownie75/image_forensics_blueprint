@@ -1,3 +1,25 @@
+HTML_UI = """
+<!DOCTYPE html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"UTF-8\">
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+  <title>Image Forensics Dashboard</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; max-width: 700px; margin: auto; }
+    input[type=\"file\"] { margin-bottom: 1em; }
+    button { margin: 0.5em 0; padding: 0.5em 1em; }
+    .preview img { max-width: 100%; margin: 1em 0; border: 1px solid #ccc; border-radius: 6px; }
+    pre { background: #f4f4f4; padding: 1em; border-radius: 5px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Image Forensics Dashboard</h1>
+  <input type=\"file\" id=\"imageInput\" accept=\"image/*\">
+  <br>
+  <button onclick=\"uploadImage()\">📤 Upload Image</button>
+  <button onclick=\"runAnalysis()\">🧪 Run Analysis</button>
+  <button onclick=\"fetchReport()\">📄 View Report</button>
   <div class=\"uploads\" id=\"uploads\"></div>
   <div class=\"preview\" id=\"preview\"></div>
   <div class=\"report\" id=\"report\"></div>
@@ -7,7 +29,6 @@
   <script>
   const API_BASE = "";
   let lastFilename = "";
-  let lastTaskId = "";
 
   function uploadImage() {
     const input = document.getElementById("imageInput");
@@ -63,12 +84,11 @@
       .catch(err => alert("Could not fetch report"));
   }
 
-      function resetDashboard() {
+  function resetDashboard() {
     document.getElementById("uploads").innerHTML = "";
     document.getElementById("preview").innerHTML = "";
     document.getElementById("report").innerHTML = "";
     lastFilename = "";
-    lastTaskId = "";
     window.latestOCRText = "";
   }
 
@@ -86,15 +106,6 @@
         URL.revokeObjectURL(url);
       })
       .catch(() => alert("Failed to download report"));
-  });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${lastFilename || 'ocr_result'}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 
   function deleteImage(filename, btn) {
@@ -106,7 +117,7 @@
       })
       .catch(() => alert("Failed to delete image"));
   }
-</script>
+  </script>
 </body>
 </html>
 """
@@ -167,10 +178,6 @@ def get_report():
     with open(REPORT_FILE, "r") as f:
         data = json.load(f)
     return jsonify(data)
-
-
-
-
 
 @app.route("/delete-image/<filename>", methods=["DELETE"])
 def delete_image(filename):
