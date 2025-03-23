@@ -1,45 +1,8 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template_string
-import os
-import json
-from image_analysis_pipeline import process_directory
-from celery_worker import run_ocr
-
-app = Flask(__name__)
-UPLOAD_FOLDER = "images"
-REPORT_FILE = "forensic_reports.json"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-HTML_UI = """
-<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"UTF-8\">
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-  <title>Image Forensics UI</title>
-  <style>
-    body { font-family: sans-serif; padding: 2em; max-width: 700px; margin: auto; }
-    input[type=\"file\"] { margin-bottom: 1em; }
-    button { margin: 0.5em 0; padding: 0.5em 1em; }
-    .preview img { max-width: 100%; margin: 1em 0; border: 1px solid #ccc; border-radius: 6px; }
-    pre { background: #f4f4f4; padding: 1em; border-radius: 5px; overflow-x: auto; }
-    #spinner { display: none; margin-top: 10px; font-style: italic; color: gray; }
-  </style>
-</head>
-<body>
-  <h1>🔍 Image Forensics Dashboard</h1>
-  <input type=\"file\" id=\"imageInput\" accept=\"image/*\">
-  <br>
-  <button onclick=\"uploadImage()\">📤 Upload Image</button>
-  <button onclick=\"runAnalysis()\">🧪 Run Analysis</button>
-  <button onclick=\"fetchReport()\">📄 View Report</button>
-  <button onclick=\"runOCR()\">🔠 Run OCR</button>
-
-  <div id=\"spinner\">⏳ Processing OCR...</div>
   <div class=\"uploads\" id=\"uploads\"></div>
   <div class=\"preview\" id=\"preview\"></div>
   <div class=\"report\" id=\"report\"></div>
   <button onclick=\"resetDashboard()\">🔄 Reset</button>
-  <button onclick=\"downloadOCR()\">💾 Download OCR Result</button>
+  <button onclick=\"downloadReport()\">💾 Download Report</button>
 
   <script>
   const API_BASE = "";
@@ -100,41 +63,7 @@ HTML_UI = """
       .catch(err => alert("Could not fetch report"));
   }
 
-  function runOCR() {
-    if (!lastFilename) return alert("Upload an image first.");
-    document.getElementById("spinner").style.display = "block";
-
-    fetch(`${API_BASE}/ocr`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ filename: lastFilename })
-    })
-      .then(res => res.json())
-      .then(data => {
-        lastTaskId = data.task_id;
-        setTimeout(checkOCRStatus, 3000);
-      });
-  }
-
-  function checkOCRStatus() {
-    if (!lastTaskId) return;
-    fetch(`${API_BASE}/ocr-status/${lastTaskId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "success") {
-          document.getElementById("spinner").style.display = "none";
-          window.latestOCRText = data.result;
-          document.getElementById("report").innerHTML = `<h2>🔠 OCR Result</h2><pre>${data.result}</pre>`;
-        } else if (data.status === "pending") {
-          setTimeout(checkOCRStatus, 3000);
-        } else {
-          document.getElementById("spinner").style.display = "none";
-          document.getElementById("report").innerHTML = `<p>❌ OCR failed: ${data.error || data.status}</p>`;
-        }
-      });
-  }
-
-  function resetDashboard() {
+      function resetDashboard() {
     document.getElementById("uploads").innerHTML = "";
     document.getElementById("preview").innerHTML = "";
     document.getElementById("report").innerHTML = "";
@@ -143,10 +72,21 @@ HTML_UI = """
     window.latestOCRText = "";
   }
 
-  function downloadOCR() {
-    const text = window.latestOCRText;
-    if (!text) return alert("No OCR result to download");
-    const blob = new Blob([text], { type: "text/plain" });
+  function downloadReport() {
+    fetch(`${API_BASE}/report`)
+      .then(res => res.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "forensic_report.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => alert("Failed to download report"));
+  });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -228,30 +168,9 @@ def get_report():
         data = json.load(f)
     return jsonify(data)
 
-@app.route("/ocr", methods=["POST"])
-def start_ocr():
-    filename = request.json.get("filename")
-    if not filename:
-        return jsonify({"error": "Filename not provided"}), 400
 
-    image_path = os.path.join(UPLOAD_FOLDER, filename)
-    if not os.path.exists(image_path):
-        return jsonify({"error": "Image not found"}), 404
 
-    task = run_ocr.delay(image_path)
-    return jsonify({"message": "OCR task started", "task_id": task.id})
 
-@app.route("/ocr-status/<task_id>", methods=["GET"])
-def ocr_status(task_id):
-    task = run_ocr.AsyncResult(task_id)
-    if task.state == "PENDING":
-        return jsonify({"status": "pending"})
-    elif task.state == "SUCCESS":
-        return jsonify({"status": "success", "result": task.result})
-    elif task.state == "FAILURE":
-        return jsonify({"status": "failure", "error": str(task.info)})
-    else:
-        return jsonify({"status": task.state})
 
 @app.route("/delete-image/<filename>", methods=["DELETE"])
 def delete_image(filename):
