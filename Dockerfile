@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender-dev \
-    libgl1 \           # 👈 THIS LINE fixes the libGL.so.1 error
+    libgl1 \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
