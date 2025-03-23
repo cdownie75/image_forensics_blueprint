@@ -1,3 +1,13 @@
+from flask import Flask, request, jsonify, send_from_directory, render_template_string
+import os
+import json
+from image_analysis_pipeline import process_directory
+
+app = Flask(__name__)
+UPLOAD_FOLDER = "images"
+REPORT_FILE = "forensic_reports.json"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 HTML_UI = """
 <!DOCTYPE html>
 <html lang=\"en\">
@@ -178,6 +188,10 @@ def get_report():
     with open(REPORT_FILE, "r") as f:
         data = json.load(f)
     return jsonify(data)
+
+
+
+
 
 @app.route("/delete-image/<filename>", methods=["DELETE"])
 def delete_image(filename):
