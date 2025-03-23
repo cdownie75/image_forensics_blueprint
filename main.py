@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify, send_from_directory, render_template_
 import os
 import json
 from image_analysis_pipeline import process_directory
+from flat_patch_detector import detect_flat_patches
+from celery_worker import run_ocr
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "images"
@@ -165,6 +167,7 @@ def upload_image():
 @app.route("/analyze", methods=["POST"])
 def analyze():
     from PIL import Image
+    all_flat_patches = {}
     for filename in os.listdir(UPLOAD_FOLDER):
         path = os.path.join(UPLOAD_FOLDER, filename)
         try:
@@ -178,7 +181,27 @@ def analyze():
         except Exception as e:
             print(f"Resize error for {filename}: {e}")
 
+        try:
+            patches = detect_flat_patches(path)
+            if patches:
+                all_flat_patches[filename] = patches
+        except Exception as e:
+            print(f"Patch detection error for {filename}: {e}")
+
     process_directory(UPLOAD_FOLDER, output_report=REPORT_FILE)
+
+    try:
+        with open(REPORT_FILE, "r") as f:
+            data = json.load(f)
+        for entry in data.get("reports", []):
+            filename = entry.get("filename")
+            if filename in all_flat_patches:
+                entry["Flat_Patches"] = all_flat_patches[filename]
+        with open(REPORT_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Error updating report with patch data: {e}")
+
     return jsonify({"message": "Analysis complete.", "report": REPORT_FILE})
 
 @app.route("/report", methods=["GET"])
@@ -188,10 +211,6 @@ def get_report():
     with open(REPORT_FILE, "r") as f:
         data = json.load(f)
     return jsonify(data)
-
-
-
-
 
 @app.route("/delete-image/<filename>", methods=["DELETE"])
 def delete_image(filename):
