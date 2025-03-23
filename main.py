@@ -7,7 +7,6 @@ from celery_worker import run_ocr
 app = Flask(__name__)
 UPLOAD_FOLDER = "images"
 REPORT_FILE = "forensic_reports.json"
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 HTML_UI = """
@@ -69,11 +68,11 @@ HTML_UI = """
     const entry = document.createElement("div");
     const img = new Image();
     img.onload = () => {
-      entry.innerHTML = `🖼️ ${filename} (${img.naturalWidth}x${img.naturalHeight}) <button onclick="deleteImage('${filename}', this)">🗑 Delete</button>`;
+      entry.innerHTML = `🖼️ ${filename} (${img.naturalWidth}x${img.naturalHeight}) <button onclick=\"deleteImage('${filename}', this)\">🗑 Delete</button>`;
       container.appendChild(entry);
     };
     img.onerror = () => {
-      entry.innerHTML = `🖼️ ${filename} (dimensions unavailable) <button onclick="deleteImage('${filename}', this)">🗑 Delete</button>`;
+      entry.innerHTML = `🖼️ ${filename} (dimensions unavailable) <button onclick=\"deleteImage('${filename}', this)\">🗑 Delete</button>`;
       container.appendChild(entry);
     };
     img.src = `/images/${filename}`;
@@ -92,7 +91,7 @@ HTML_UI = """
     fetch(`${API_BASE}/report`)
       .then(res => res.json())
       .then(data => {
-        const flagged = data.reports.filter(r => r.flagged);
+        const flagged = data.reports ? data.reports.filter(r => r.flagged) : [];
         document.getElementById("report").innerHTML = `
           <h2>📄 Report</h2>
           <pre>${JSON.stringify(flagged, null, 2)}</pre>
@@ -188,23 +187,22 @@ def upload_image():
     path = os.path.join(UPLOAD_FOLDER, file.filename)
     file.save(path)
 
-    # Resize image to 25% of original size to save memory
     try:
         from PIL import Image
         with Image.open(path) as img:
             max_dim = 1600
-        if img.width > max_dim or img.height > max_dim:
-            scale = min(max_dim / img.width, max_dim / img.height)
-            new_size = (int(img.width * scale), int(img.height * scale))
-            img = img.resize(new_size)
-            img.save(path)
+            if img.width > max_dim or img.height > max_dim:
+                scale = min(max_dim / img.width, max_dim / img.height)
+                new_size = (int(img.width * scale), int(img.height * scale))
+                img = img.resize(new_size)
+                img.save(path)
     except Exception as e:
         print(f"Image resizing failed: {e}")
+
     return jsonify({"message": f"Image '{file.filename}' uploaded successfully.", "filename": file.filename})
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    # Resize all images to max 1600px before re-analysis
     from PIL import Image
     for filename in os.listdir(UPLOAD_FOLDER):
         path = os.path.join(UPLOAD_FOLDER, filename)
