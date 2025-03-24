@@ -8,6 +8,8 @@ def crop_receipt_region(image_path):
     if img is None:
         raise ValueError(f"Could not read image from {image_path}")
 
+    print(f"[CROP] Original image shape: {img.shape}")
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(blurred, 30, 150)
@@ -20,5 +22,14 @@ def crop_receipt_region(image_path):
     x, y, w, h = cv2.boundingRect(largest)
     cropped = img[y:y+h, x:x+w]
 
+    print(f"[CROP] Cropped image shape: {cropped.shape}")
+
+    # Save a debug copy of the cropped image
+    debug_path = image_path.replace(".jpg", "_cropped_debug.jpg")
+    cv2.imwrite(debug_path, cropped)
+    print(f"[CROP] Debug cropped image saved to {debug_path}")
+
+    # Save cropped image to overwrite the original path
     pil_image = Image.fromarray(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
     pil_image.save(image_path)
+    print(f"[CROP] Final cropped image saved to {image_path}")
