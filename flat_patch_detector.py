@@ -1,10 +1,16 @@
-
+import os
 import cv2
 import numpy as np
 from PIL import Image
 from receipt_cropper import save_flat_patch_overlay
 
-def detect_flat_patches(image_path, patch_size=40, std_threshold=2.0):
+def detect_flat_patches(image_path, patch_size=30, std_threshold=3.0):
+    filename = os.path.basename(image_path)
+
+    if "_overlay" in filename or "_cropped_debug" in filename:
+        print(f"[SKIP] Skipping debug/overlay file: {filename}")
+        return []
+
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if image is None:
         raise ValueError(f"Could not load image from {image_path}")
@@ -30,9 +36,16 @@ def detect_flat_patches(image_path, patch_size=40, std_threshold=2.0):
         cv2.rectangle(overlay_image, (x, y), (x+patch_size, y+patch_size), (0, 0, 255), 2)
 
     # Save overlay image
-    save_flat_patch_overlay(overlay_image, image_path.split("/")[-1])
+    overlay_path = save_flat_patch_overlay(overlay_image, filename)
 
-    return flat_patches
+    # Return both patch data and overlay link summary
+    return {
+        "patches": flat_patches,
+        "summary": {
+            "suspicious_flat_regions": len(flat_patches) > 0,
+            "overlay_image_url": f"/overlays/{filename}"
+        }
+    }
 
 def generate_overlay_image(image_path, patches, output_path, patch_size=40):
     image = Image.open(image_path).convert("RGB")
