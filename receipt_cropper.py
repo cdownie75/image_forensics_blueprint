@@ -36,8 +36,10 @@ def crop_receipt_region(image_path):
     pil_image.save(image_path)
     print(f"[CROP] Final cropped image saved to {image_path}")
 
-def save_flat_patch_overlay(image, filename):
-    overlay_path = os.path.join("images", filename.replace(".jpg", "_overlay.jpg"))
-    os.makedirs("images", exist_ok=True)
-    cv2.imwrite(overlay_path, image)
-    print(f"[OVERLAY] Overlay image saved to {overlay_path}")
+def save_flat_patch_overlay(overlay_image, filename, overlay_dir="overlays"):
+    os.makedirs(overlay_dir, exist_ok=True)
+    overlay_filename = os.path.splitext(filename)[0] + "_overlay.jpg"
+    overlay_path = os.path.join(overlay_dir, overlay_filename)
+    cv2.imwrite(overlay_path, overlay_image)
+    print(f"[OVERLAY SAVED] {overlay_path}")
+    return overlay_path
