@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 from receipt_cropper import save_flat_patch_overlay
 
+
 def detect_flat_patches(image_path, patch_size=30, std_threshold=3.0):
     filename = os.path.basename(image_path)
 
@@ -43,9 +44,10 @@ def detect_flat_patches(image_path, patch_size=30, std_threshold=3.0):
         "patches": flat_patches,
         "summary": {
             "suspicious_flat_regions": len(flat_patches) > 0,
-            "overlay_image_url": f"/overlays/{filename}"
+            "overlay_image_url": f"/overlays/{os.path.basename(overlay_path)}"
         }
     }
+
 
 def generate_overlay_image(image_path, patches, output_path, patch_size=40):
     image = Image.open(image_path).convert("RGB")
@@ -58,3 +60,15 @@ def generate_overlay_image(image_path, patches, output_path, patch_size=40):
         draw.rectangle([x, y, x+patch_size, y+patch_size], outline="red", width=2)
 
     overlay.save(output_path)
+
+
+# Also define the missing save_flat_patch_overlay if not already in receipt_cropper.py
+# This version is here for reference and to be added to receipt_cropper.py
+
+def save_flat_patch_overlay(overlay_image, filename, overlay_dir="overlays"):
+    os.makedirs(overlay_dir, exist_ok=True)
+    overlay_filename = os.path.splitext(filename)[0] + "_overlay.jpg"
+    overlay_path = os.path.join(overlay_dir, overlay_filename)
+    cv2.imwrite(overlay_path, overlay_image)
+    print(f"[OVERLAY SAVED] {overlay_path}")
+    return overlay_path
