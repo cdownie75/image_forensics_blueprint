@@ -24,11 +24,10 @@ def crop_receipt_region(image_path):
 
     print(f"[CROP] Cropped image shape: {cropped.shape}")
 
-    # Save a debug copy of the cropped image into the same folder
-    debug_path = os.path.join(
-        os.path.dirname(image_path),
-        os.path.splitext(os.path.basename(image_path))[0] + "_cropped_debug.jpg"
-    )
+    # Save a debug copy of the cropped image inside 'images/' folder
+    base_filename = os.path.splitext(os.path.basename(image_path))[0]
+    debug_path = os.path.join("images", base_filename + "_cropped_debug.jpg")
+    os.makedirs("images", exist_ok=True)
     cv2.imwrite(debug_path, cropped)
     print(f"[CROP] Debug cropped image saved to {debug_path}")
 
@@ -36,3 +35,9 @@ def crop_receipt_region(image_path):
     pil_image = Image.fromarray(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
     pil_image.save(image_path)
     print(f"[CROP] Final cropped image saved to {image_path}")
+
+def save_flat_patch_overlay(image, filename):
+    overlay_path = os.path.join("images", filename.replace(".jpg", "_overlay.jpg"))
+    os.makedirs("images", exist_ok=True)
+    cv2.imwrite(overlay_path, image)
+    print(f"[OVERLAY] Overlay image saved to {overlay_path}")
