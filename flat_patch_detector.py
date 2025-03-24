@@ -2,12 +2,13 @@
 import cv2
 import numpy as np
 from PIL import Image
+from receipt_cropper import save_flat_patch_overlay
 
 def detect_flat_patches(image_path, patch_size=40, std_threshold=2.0):
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if image is None:
         raise ValueError(f"Could not load image from {image_path}")
-    
+
     height, width = image.shape
     flat_patches = []
 
@@ -21,7 +22,16 @@ def detect_flat_patches(image_path, patch_size=40, std_threshold=2.0):
                     "y": y,
                     "std_dev": float(std_dev)
                 })
-    
+
+    # Generate overlay with suspicious patches
+    overlay_image = cv2.imread(image_path)
+    for patch in flat_patches:
+        x, y = patch["x"], patch["y"]
+        cv2.rectangle(overlay_image, (x, y), (x+patch_size, y+patch_size), (0, 0, 255), 2)
+
+    # Save overlay image
+    save_flat_patch_overlay(overlay_image, image_path.split("/")[-1])
+
     return flat_patches
 
 def generate_overlay_image(image_path, patches, output_path, patch_size=40):
