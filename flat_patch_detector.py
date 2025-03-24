@@ -60,15 +60,3 @@ def generate_overlay_image(image_path, patches, output_path, patch_size=40):
         draw.rectangle([x, y, x+patch_size, y+patch_size], outline="red", width=2)
 
     overlay.save(output_path)
-
-
-# Also define the missing save_flat_patch_overlay if not already in receipt_cropper.py
-# This version is here for reference and to be added to receipt_cropper.py
-
-def save_flat_patch_overlay(overlay_image, filename, overlay_dir="overlays"):
-    os.makedirs(overlay_dir, exist_ok=True)
-    overlay_filename = os.path.splitext(filename)[0] + "_overlay.jpg"
-    overlay_path = os.path.join(overlay_dir, overlay_filename)
-    cv2.imwrite(overlay_path, overlay_image)
-    print(f"[OVERLAY SAVED] {overlay_path}")
-    return overlay_path
