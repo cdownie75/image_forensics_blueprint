@@ -24,8 +24,11 @@ def crop_receipt_region(image_path):
 
     print(f"[CROP] Cropped image shape: {cropped.shape}")
 
-    # Save a debug copy of the cropped image
-    debug_path = image_path.replace(".jpg", "_cropped_debug.jpg")
+    # Save a debug copy of the cropped image into the same folder
+    debug_path = os.path.join(
+        os.path.dirname(image_path),
+        os.path.splitext(os.path.basename(image_path))[0] + "_cropped_debug.jpg"
+    )
     cv2.imwrite(debug_path, cropped)
     print(f"[CROP] Debug cropped image saved to {debug_path}")
 
