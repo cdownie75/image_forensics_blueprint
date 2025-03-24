@@ -2,13 +2,15 @@ from flask import Flask, request, jsonify, send_from_directory, render_template_
 import os
 import json
 from image_analysis_pipeline import process_directory
-from flat_patch_detector import detect_flat_patches
+from flat_patch_detector import detect_flat_patches, generate_overlay_image
 from celery_worker import run_ocr
 
 app = Flask(__name__)
 UPLOAD_FOLDER = "images"
+OVERLAY_FOLDER = "overlays"
 REPORT_FILE = "forensic_reports.json"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OVERLAY_FOLDER, exist_ok=True)
 
 HTML_UI = """
 <!DOCTYPE html>
@@ -64,7 +66,7 @@ HTML_UI = """
     const entry = document.createElement("div");
     const img = new Image();
     img.onload = () => {
-      entry.innerHTML = `🖼️ ${filename} (${img.naturalWidth}x${img.naturalHeight}) <button onclick=\"deleteImage('${filename}', this)\">🗑 Delete</button>`;
+      entry.innerHTML = `🖼️ ${filename} (${img.naturalWidth}x${img.naturalHeight}) <button onclick=\"deleteImage('${filename}', this)\">🗑 Delete</button> <a href='/overlays/${filename}' target='_blank'>🔍 View Overlay</a>`;
       container.appendChild(entry);
     };
     img.onerror = () => {
@@ -167,7 +169,7 @@ def upload_image():
 @app.route("/analyze", methods=["POST"])
 def analyze():
     from PIL import Image
-    all_flat_patches = {}
+    flat_patch_summary = {}
     for filename in os.listdir(UPLOAD_FOLDER):
         path = os.path.join(UPLOAD_FOLDER, filename)
         try:
@@ -182,9 +184,13 @@ def analyze():
             print(f"Resize error for {filename}: {e}")
 
         try:
-            patches = detect_flat_patches(path)
+            patches = detect_flat_patches(path, patch_size=40, std_threshold=2.0)
             if patches:
-                all_flat_patches[filename] = patches
+                generate_overlay_image(path, patches, os.path.join(OVERLAY_FOLDER, filename))
+                flat_patch_summary[filename] = {
+                    "suspicious_flat_regions": True,
+                    "overlay_image_url": f"/overlays/{filename}"
+                }
         except Exception as e:
             print(f"Patch detection error for {filename}: {e}")
 
@@ -195,8 +201,8 @@ def analyze():
             data = json.load(f)
         for entry in data.get("reports", []):
             filename = entry.get("filename")
-            if filename in all_flat_patches:
-                entry["Flat_Patches"] = all_flat_patches[filename]
+            if filename in flat_patch_summary:
+                entry["Flat_Patch_Overlay"] = flat_patch_summary[filename]
         with open(REPORT_FILE, "w") as f:
             json.dump(data, f, indent=2)
     except Exception as e:
@@ -215,14 +221,21 @@ def get_report():
 @app.route("/delete-image/<filename>", methods=["DELETE"])
 def delete_image(filename):
     path = os.path.join(UPLOAD_FOLDER, filename)
+    overlay_path = os.path.join(OVERLAY_FOLDER, filename)
     if os.path.exists(path):
         os.remove(path)
+        if os.path.exists(overlay_path):
+            os.remove(overlay_path)
         return jsonify({"message": f"Deleted '{filename}'"})
     return jsonify({"error": "File not found"}), 404
 
 @app.route("/images/<filename>", methods=["GET"])
 def get_image(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
+
+@app.route("/overlays/<filename>", methods=["GET"])
+def get_overlay(filename):
+    return send_from_directory(OVERLAY_FOLDER, filename)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
